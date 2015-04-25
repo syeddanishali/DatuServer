@@ -45,7 +45,7 @@ public class PI001_1Test extends RulesBaseTest {
             break;
         }
       }
-      System.out.println("actualResult="+actualResult);
+     
       
       assertEquals("Positive condition", actualResult, true);
 	}
