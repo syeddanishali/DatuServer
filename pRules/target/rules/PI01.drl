@@ -1,0 +1,247 @@
+package rules;
+import com.datu.patient.*;
+import com.datu.result.*;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.text.ParseException;
+import java.util.Locale;
+import java.util.ArrayList;
+import java.util.List;
+	rule "PI001_1"
+	//Collect patient's initial information using MyInformation Survey
+	//	sailence = 1000*(10-$priority)+$seq
+	when
+		patient: Patient(cResponses:collectionResponses);
+	    not CollectionResponse(collectionId==11) from cResponses;
+	then
+		DisplayCollection displayCollection = new DisplayCollection();
+       	displayCollection.setCollectionId(11);
+        patient.getRulesResult().getDisplayCollections().add(displayCollection);
+	end
+ 
+	rule "PI001_2"
+	//Collect patient's preferences using MyPreference Survey
+	//	sailence = 1000*(10-$priority)+$seq
+	when
+		patient: Patient(cResponses:collectionResponses);
+	    not CollectionResponse(collectionId==10) from cResponses;
+	then
+		//System.out.println("success PI001_2");
+		DisplayCollection displayCollection = new DisplayCollection();
+       	displayCollection.setCollectionId(10);
+        patient.getRulesResult().getDisplayCollections().add(displayCollection);
+	end
+
+	rule "PI001_3"
+	//Collect patient's interests using MyInterests Survey (Male)
+	//	sailence = 1000*(10-$priority)+$seq
+	when
+		patient: Patient(cResponses:collectionResponses, demo: demographics);
+		Demographics(genderCode=="M") from demo;
+	    not CollectionResponse(collectionId==12) from cResponses;
+	then
+		//System.out.println("success PI001_3");
+		DisplayCollection displayCollection = new DisplayCollection();
+       	displayCollection.setCollectionId(12);
+        patient.getRulesResult().getDisplayCollections().add(displayCollection);
+	end
+
+	rule "PI001_4"
+	//Collect patient's interests using MyInterests Survey (Female)
+	//	sailence = 1000*(10-$priority)+$seq
+	when
+		patient: Patient(cResponses:collectionResponses, demo: demographics);
+		Demographics(genderCode=='F') from demo;
+	    not CollectionResponse(collectionId==13) from cResponses;
+	then
+		//System.out.println("success PI001_4");
+		DisplayCollection displayCollection = new DisplayCollection();
+       	displayCollection.setCollectionId(13);
+        patient.getRulesResult().getDisplayCollections().add(displayCollection);
+	end
+
+	rule "PI001_5"
+	//Collect patient's current conditions using Conditions Survey
+	//	sailence = 1000*(10-$priority)+$seq
+	when
+		patient: Patient(cResponses:collectionResponses);
+	    not CollectionResponse(collectionId == 14, daysBetween(responseDateTime, currentTime()) > 365) from cResponses;
+	then
+		//System.out.println("success PI001_5");
+		DisplayCollection displayCollection = new DisplayCollection();
+       	displayCollection.setCollectionId(14);
+        patient.getRulesResult().getDisplayCollections().add(displayCollection);
+	end
+
+	rule "PI001_6"
+	//If applicable collect patient's chidbirth history using MyChildbirth Hx Survey
+	//	sailence = 1000*(10-$priority)+$seq
+	when
+		patient :Patient(demo: demographics, tResponses: tileResponses);
+		Demographics(genderCode =='F', age >= 18, age <=50) from demo;
+		tResponse: TileResponse(tileResponseId==12) from tResponses;
+		TileResponse(tRespEngagements: tileResponseEngagements) from tResponse;
+		TileResponseEngagement(actionValue=='Pregnancy/Postpartum') from tRespEngagements;
+	then
+		//System.out.println("success PI001_6");
+		DisplayCollection displayCollection = new DisplayCollection();
+       	displayCollection.setCollectionId(19);
+        patient.getRulesResult().getDisplayCollections().add(displayCollection);
+	end
+
+	rule "PI001_7"
+	//Enroll patient to Diabetes program based on Diabetes Diagnosis question response
+	//	sailence = 1000*(10-$priority)+$seq
+	when
+		patient :Patient(tResponses: tileResponses);
+		tResponse : TileResponse(tileResponseId==16) from tResponses;
+		TileResponse(tRespEngagements:tileResponseEngagements) from tResponse;
+		TileResponseEngagement(actionValue=='Yes') from tRespEngagements;
+	then
+		//System.out.println("success PI001_7");
+		ProgramEnrollmentAction program = new ProgramEnrollmentAction();
+		//enroll to Diabetes program 
+   		program.setProgramId(2);
+   		program.setAction("enroll");
+    	patient.getRulesResult().getProgramEnrollmentActions().add(program);
+	end
+
+	rule "PI001_8"
+	//Enroll patients to Pre-conception  Pregnancy program based on Preparing for Pregnancy question response
+	//	sailence = 1000*(10-$priority)+$seq
+	when
+		patient: Patient(tResponses: tileResponses, programs: programEnrollments);
+		eval(programs.size() <= 0);
+		tResponse: TileResponse(tileResponseId==35) from tResponses;
+		TileResponse(tRespEngagements:tileResponseEngagements) from tResponse;
+		TileResponseEngagement(actionValue=="Yes") from tRespEngagements;
+	then
+		//System.out.println("success PI001_8");
+		ProgramEnrollmentAction program = new ProgramEnrollmentAction();
+		//enroll to Pregnancy  program 
+   		program.setProgramId(3);
+   		program.setAction('enroll');
+    	patient.getRulesResult().getProgramEnrollmentActions().add(program);
+	end
+
+	rule "PI001_9"
+	//Enroll patients to Pregnancy program based on Current Pregnancy question response
+	//	sailence = 1000*(10-$priority)+$seq
+	when
+		patient: Patient(tResponses: tileResponses, programs: programEnrollments);
+		eval(programs.size() <= 0);
+		tResponse: TileResponse(tileResponseId==34) from tResponses;
+		TileResponse(tRespEngagements:tileResponseEngagements) from tResponse;
+		TileResponseEngagement(actionValue=="Yes") from tRespEngagements;
+	then
+		//System.out.println("success PI001_9");
+		ProgramEnrollmentAction program = new ProgramEnrollmentAction();
+		//enroll to Pregnancy  program 
+   		program.setProgramId(3);
+   		program.setAction("enroll");
+    	patient.getRulesResult().getProgramEnrollmentActions().add(program);
+	end
+
+	rule "PI001_14"
+	//Prep patient for upcoming appointment
+	//	sailence = 1000*(10-$priority)+$seq
+	when
+		
+		patient: Patient(tResponses:tileResponses);
+		tResponse: TileResponse(tileResponseId==27) from tResponses;
+		TileResponse(tRespEngagements:tileResponseEngagements) from tResponse;
+		TileResponseEngagement(actionName=="AppointmentDate", apptDate:actionValue) from tRespEngagements;
+ 	    eval(daysBetween(cDate(apptDate), currentTime()) <= 7 &&  daysBetween(cDate(apptDate), currentTime()) > 0);
+	then
+		DisplayTile displayTile = new DisplayTile();
+   		displayTile.setTileRange("81-86");
+    	patient.getRulesResult().getDisplayTiles().add(displayTile);
+	end
+
+	rule "PI001_17"
+	//Collect Women�s Health Screenings. If dismissed, then show at next log in and if dismissed again, then show again in one month. 
+	//	sailence = 1000*(10-$priority)+$seq
+	when
+		patient: Patient(cResponses: collectionResponses, tResponses: tileResponses, demo: demographics);
+		Demographics(genderCode=='F', age >= 18, age <=59) from demo;
+		eval(isDisplayTile(73, tResponses, 2, 30, 365));
+	then
+		DisplayCollection displayCollection = new DisplayCollection();
+   		displayCollection.setCollectionId(26);
+        patient.getRulesResult().getDisplayCollections().add(displayCollection);
+	end
+
+
+	function boolean isDisplayTile(int tileId, List tileResponses, int dismissCount, int dismissPeriod, int repliedPeriod) {
+	    if (tileResponses == null || tileResponses.size() == 0) {
+	      return true;
+	    }
+	
+	    boolean responseFl = false;
+	    boolean displayFl = false;
+	    int counter = 0;
+	
+	    for (int i = 0; i < tileResponses.size(); i++) {
+	      TileResponse tileResponse = (TileResponse) tileResponses.get(i);
+	      if (tileResponse.getTileResponseId() == tileId) {
+	        responseFl = false;
+	        if (tileResponse.getDismissFlag()) {
+	          if (daysBetween(tileResponse.getResponseDateTime(), currentTime()) <= dismissPeriod) {
+	            counter++;
+	            if (counter >= dismissCount) {
+	              return false;
+	            }
+	          } else {
+	            // dismissed a month ago.
+	            displayFl = true;
+	          }
+	        } else {
+	          // replied and responded more than year
+	          if (tileResponse.getTileResponseEngagements().size() > 0
+	              && daysBetween(tileResponse.getResponseDateTime(), currentTime()) < repliedPeriod) {
+	            return false;
+	          }
+	        }
+	      } else {
+	        responseFl = true;
+	      }
+	    }
+	
+	    if (responseFl || displayFl) {
+	      return true;
+	    }
+	
+	    return false;
+  }
+
+  // function for current date and time
+  function Date currentTime() {
+    return new Date();
+  }
+
+  // fucntion to return the date difference in days
+  function long daysBetween(Date date1, Date date2) {
+    if (date1 == null || date2 == null) {
+      return 0;
+    }
+
+    long ONE_HOUR = 60 * 60 * 1000L;
+    return ((date2.getTime() - date1.getTime() + ONE_HOUR) / (ONE_HOUR * 24));
+
+    // return Date(date2.getDate() - date1.getDate()).getDay();
+  }
+
+  function Date cDate(String strDate) {
+    try {
+      if (strDate == null || strDate.equals("")) {
+        return null;
+      }
+
+      SimpleDateFormat format = new SimpleDateFormat("yyyy/MM/dd");
+      Date date = format.parse(strDate);
+
+      return date;
+    } catch (ParseException e) {
+      return null;
+    }
+  }
